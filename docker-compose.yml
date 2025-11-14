@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: content-lab-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: content_studio
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:

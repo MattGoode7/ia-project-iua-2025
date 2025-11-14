@@ -1,0 +1,457 @@
+:root {
+  --bg: #030711;
+  --card: #0d1424;
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-highlight: rgba(255, 255, 255, 0.12);
+  --text: #f4f6fb;
+  --text-muted: rgba(244, 246, 251, 0.7);
+  --accent: #7f5af0;
+  --accent-strong: #ff6b6b;
+  --success: #5af0a5;
+  --warning: #ffd166;
+  --border-radius: 18px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-geist-sans), "Inter", system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top, #121b33, #030711 55%);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page {
+  width: 100%;
+  margin: 0;
+  padding: 48px clamp(24px, 6vw, 96px) 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.hero {
+  background: linear-gradient(135deg, #1c2541, #0b162c);
+  border-radius: var(--border-radius);
+  padding: 40px;
+  border: 1px solid var(--card-border);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4);
+}
+
+.hero h1 {
+  font-size: clamp(2.4rem, 5vw, 3.2rem);
+  margin: 8px 0;
+}
+
+.eyebrow {
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.muted {
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.card {
+  background: var(--card);
+  border-radius: var(--border-radius);
+  padding: 24px;
+  border: 1px solid var(--card-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.tab-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.tab-button {
+  border: 1px solid var(--card-border);
+  border-radius: var(--border-radius);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text);
+  padding: 16px;
+  text-align: left;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  cursor: pointer;
+  transition: border 0.2s ease, background 0.2s ease, transform 0.1s ease;
+}
+
+.tab-button strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.tab-button small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.tab-icon {
+  font-size: 1.4rem;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+}
+
+.tab-button.active {
+  border-color: rgba(127, 90, 240, 0.7);
+  background: rgba(127, 90, 240, 0.12);
+  transform: translateY(-1px);
+}
+
+.panel-shell {
+  width: 100%;
+}
+
+.panel-card {
+  width: 100%;
+}
+
+.card-header {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  font-size: 1.4rem;
+}
+
+.icon-circle.success {
+  background: rgba(90, 240, 165, 0.12);
+  color: var(--success);
+}
+
+.icon-circle.accent {
+  background: rgba(127, 90, 240, 0.12);
+  color: var(--accent);
+}
+
+.icon-circle.warning {
+  background: rgba(255, 209, 102, 0.12);
+  color: var(--warning);
+}
+
+.icon-circle.muted {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.form textarea,
+.form select,
+.form input[type="text"] {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px 14px;
+  color: var(--text);
+  font-size: 0.95rem;
+  resize: none;
+}
+
+.form textarea:focus,
+.form select:focus,
+.form input[type="text"]:focus {
+  outline: 2px solid rgba(127, 90, 240, 0.5);
+}
+
+.primary {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #7f5af0, #5b36d4);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.2s ease;
+}
+
+.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.primary:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.ghost-button {
+  border-radius: 999px;
+  border: 1px solid var(--card-border);
+  background: transparent;
+  color: var(--text);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.result-block {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px dashed var(--card-border);
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.sentiment-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sentiment-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sentiment-pill {
+  background: rgba(90, 240, 165, 0.15);
+  color: var(--success);
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+}
+
+.sentiment-feeling {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.sentiment-quote {
+  font-style: italic;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  margin: 0;
+  white-space: pre-line;
+}
+
+.sentiment-quote.compact {
+  font-size: 0.85rem;
+  padding: 10px 12px;
+}
+
+.sentiment-extra {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.sentiment-extra li span {
+  color: var(--text);
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.options-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.options-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+}
+
+.checkbox input {
+  accent-color: var(--accent);
+}
+
+.checkbox input:checked + span {
+  color: white;
+}
+
+.placeholder {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.preview {
+  max-width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  margin-bottom: 12px;
+}
+
+.history-card {
+  width: 100%;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.history-item {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 16px;
+  border: 1px solid var(--card-border);
+}
+
+.history-image {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-thumb {
+  width: 140px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+}
+
+.history-sentiment {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.history-icon {
+  font-size: 1.5rem;
+  color: var(--accent);
+}
+
+.history-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.badge {
+  background: rgba(127, 90, 240, 0.15);
+  color: var(--accent);
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.status {
+  font-size: 0.8rem;
+  text-transform: capitalize;
+  color: var(--text-muted);
+}
+
+.status.completed {
+  color: var(--success);
+}
+
+.status.failed {
+  color: var(--accent-strong);
+}
+
+.error-text {
+  color: var(--accent-strong);
+  font-size: 0.9rem;
+}
+
+.error-banner {
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  padding: 16px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .hero {
+    padding: 28px;
+  }
+
+  .tab-list {
+    grid-template-columns: 1fr;
+  }
+
+  .tab-button {
+    flex-direction: row;
+    padding: 14px;
+  }
+
+  .panel-card {
+    padding: 20px;
+  }
+
+  .history-item {
+    flex-direction: column;
+  }
+}
