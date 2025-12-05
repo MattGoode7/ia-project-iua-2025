@@ -8,7 +8,7 @@ export async function saveContentItem(data: {
   prompt: string;
   metadata?: Record<string, unknown>;
   result?: Record<string, unknown>;
-  status?: "pending" | "completed" | "failed";
+  status?: "pending" | "processing" | "completed" | "failed";
   n8nTaskId?: string;
   error?: string;
 }) {

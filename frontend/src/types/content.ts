@@ -1,6 +1,20 @@
 export type ContentKind = "script" | "image" | "video" | "sentiment";
 
-export type ContentStatus = "pending" | "completed" | "failed";
+export type ContentStatus = "pending" | "processing" | "completed" | "failed";
+
+export type VideoScene = {
+  text: string;
+  searchTerms: string[];
+};
+
+export type VideoConfig = {
+  paddingBack?: number;
+  music?: string;
+  voice?: string;
+  captionPosition?: "top" | "center" | "bottom";
+  captionBackgroundColor?: string;
+  orientation?: "portrait" | "landscape";
+};
 
 export type ContentResult = {
   text?: string;
@@ -16,6 +30,11 @@ export type ContentResult = {
   imageMimeType?: string;
   sentiment?: string;
   score?: number;
+  // Video fields
+  videoId?: string;
+  videoUrl?: string;
+  videoStatus?: "pending" | "processing" | "ready" | "error";
+  videoDuration?: number;
   [key: string]: unknown;
 };
 

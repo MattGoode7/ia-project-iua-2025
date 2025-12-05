@@ -1,4 +1,4 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, model, models, InferSchemaType, Document } from "mongoose";
 
 const ContentItemSchema = new Schema(
   {
@@ -10,7 +10,7 @@ const ContentItemSchema = new Schema(
     prompt: { type: String, required: true },
     status: {
       type: String,
-      enum: ["pending", "completed", "failed"],
+      enum: ["pending", "processing", "completed", "failed"],
       default: "pending",
     },
     metadata: { type: Schema.Types.Mixed, default: {} },
@@ -26,18 +26,18 @@ const ContentItemSchema = new Schema(
 ContentItemSchema.set("toJSON", {
   virtuals: true,
   versionKey: false,
-  transform: (_doc, ret) => {
-    ret.id = ret._id.toString();
-    ret._id = ret._id.toString();
+  transform: (_doc: Document, ret: Record<string, unknown>) => {
+    ret.id = String(ret._id);
+    ret._id = String(ret._id);
   },
 });
 
 ContentItemSchema.set("toObject", {
   virtuals: true,
   versionKey: false,
-  transform: (_doc, ret) => {
-    ret.id = ret._id.toString();
-    ret._id = ret._id.toString();
+  transform: (_doc: Document, ret: Record<string, unknown>) => {
+    ret.id = String(ret._id);
+    ret._id = String(ret._id);
   },
 });
 

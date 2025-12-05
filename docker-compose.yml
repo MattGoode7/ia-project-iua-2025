@@ -22,6 +22,21 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
 
+  short-video-maker:
+    image: gyoridavid/short-video-maker:latest-tiny
+    container_name: content-lab-video-maker
+    restart: unless-stopped
+    ports:
+      - "3123:3123"
+    environment:
+      - LOG_LEVEL=info
+      - PEXELS_API_KEY=${PEXELS_API_KEY}
+    volumes:
+      - video_data:/app/data/videos
+    mem_limit: 4g
+    cpus: 2
+
 volumes:
   mongo_data:
   qdrant_data:
+  video_data:

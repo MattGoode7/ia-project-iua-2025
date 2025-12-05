@@ -7,6 +7,8 @@ import {
   FiImage,
   FiPenTool,
   FiRefreshCw,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 import type {
   ContentHistoryItem,
@@ -17,6 +19,7 @@ import type {
 type RequestState = {
   loading: boolean;
   error: string | null;
+  message?: string | null;
 };
 
 const toneOptions = [
@@ -33,6 +36,46 @@ const imageGoalOptions = [
   { label: "Educar a la audiencia", value: "Educativo" },
   { label: "Inspirar a la comunidad", value: "Inspiracional" },
 ];
+
+const musicOptions = [
+  { label: "Tranquilo", value: "chill" },
+  { label: "Alegre", value: "happy" },
+  { label: "Esperanzador", value: "hopeful" },
+  { label: "Emocionante", value: "excited" },
+  { label: "Contemplativo", value: "contemplative" },
+  { label: "Melancolico", value: "melancholic" },
+  { label: "Oscuro", value: "dark" },
+  { label: "Divertido", value: "funny/quirky" },
+];
+
+const voiceOptions = [
+  { label: "Heart (Femenina)", value: "af_heart" },
+  { label: "Bella (Femenina)", value: "af_bella" },
+  { label: "Nova (Femenina)", value: "af_nova" },
+  { label: "Sarah (Femenina)", value: "af_sarah" },
+  { label: "Adam (Masculina)", value: "am_adam" },
+  { label: "Echo (Masculina)", value: "am_echo" },
+  { label: "Michael (Masculina)", value: "am_michael" },
+];
+
+const captionPositionOptions = [
+  { label: "Superior", value: "top" },
+  { label: "Centro", value: "center" },
+  { label: "Inferior", value: "bottom" },
+];
+
+type VideoScene = {
+  text: string;
+  searchTermsInput: string;
+};
+
+type VideoConfig = {
+  paddingBack: number;
+  music: string;
+  voice: string;
+  captionPosition: "top" | "center" | "bottom";
+  orientation: "portrait" | "landscape";
+};
 
 const typeCopy: Record<string, string> = {
   script: "Guion",
@@ -66,7 +109,7 @@ const tabMeta: Record<
   },
   video: {
     title: "Videos cortos",
-    description: "Placeholder · La integración con IA se sumará pronto.",
+    description: "Crea videos para redes sociales con escenas personalizadas.",
     icon: <FiFilm />,
   },
   sentiment: {
@@ -376,16 +419,36 @@ export default function Home() {
     error: null,
   });
 
+  // Video state
+  const [videoScenes, setVideoScenes] = useState<VideoScene[]>([
+    { text: "", searchTermsInput: "" },
+  ]);
+  const [videoConfig, setVideoConfig] = useState<VideoConfig>({
+    paddingBack: 1500,
+    music: "chill",
+    voice: "af_heart",
+    captionPosition: "bottom",
+    orientation: "portrait",
+  });
+  const [videoResult, setVideoResult] = useState<ContentResult | null>(null);
+  const [videoState, setVideoState] = useState<RequestState>({
+    loading: false,
+    error: null,
+    message: null,
+  });
+
   const [history, setHistory] = useState<ContentHistoryItem[]>([]);
   const [historyState, setHistoryState] = useState<RequestState>({
     loading: true,
     error: null,
   });
+  const [historyPage, setHistoryPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   const fetchHistory = useCallback(async () => {
     setHistoryState((prev) => ({ ...prev, loading: true }));
     try {
-      const response = await fetch("/api/history?limit=12", {
+      const response = await fetch("/api/history?limit=50", {
         method: "GET",
         cache: "no-store",
       });
@@ -526,6 +589,151 @@ export default function Home() {
     }
   };
 
+  // Video handlers
+  const addScene = () => {
+    setVideoScenes((prev) => [...prev, { text: "", searchTermsInput: "" }]);
+  };
+
+  const removeScene = (index: number) => {
+    if (videoScenes.length <= 1) return;
+    setVideoScenes((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateSceneText = (index: number, text: string) => {
+    setVideoScenes((prev) =>
+      prev.map((scene, i) => (i === index ? { ...scene, text } : scene))
+    );
+  };
+
+  const updateSceneSearchTerms = (index: number, termsString: string) => {
+    setVideoScenes((prev) =>
+      prev.map((scene, i) => (i === index ? { ...scene, searchTermsInput: termsString } : scene))
+    );
+  };
+
+  const parseSearchTerms = (input: string): string[] => {
+    return input
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+  };
+
+  const submitVideo = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    
+    const scenesWithParsedTerms = videoScenes.map((s) => ({
+      text: s.text,
+      searchTerms: parseSearchTerms(s.searchTermsInput),
+    }));
+    
+    const validScenes = scenesWithParsedTerms.filter(
+      (s) => s.text.trim().length >= 5 && s.searchTerms.length > 0
+    );
+    
+    if (validScenes.length === 0) {
+      setVideoState({
+        loading: false,
+        error: "Agrega al menos una escena con texto y terminos de busqueda",
+      });
+      return;
+    }
+
+    setVideoState({ loading: true, error: null, message: null });
+    setVideoResult(null);
+
+    try {
+      const response = await fetch("/api/content/video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scenes: validScenes,
+          config: videoConfig,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "No se pudo generar el video");
+      }
+
+      // El resultado puede tener videoStatus "processing" o "ready"
+      const result = data.item?.result;
+      const videoId = result?.videoId as string | undefined;
+      const videoStatus = result?.videoStatus as string | undefined;
+
+      if (!videoId) {
+        throw new Error("No se recibió el ID del video");
+      }
+
+      // Si el video ya está listo
+      if (videoStatus === "ready") {
+        setVideoState({ loading: false, error: null, message: "¡Video generado exitosamente! Obteniendo video..." });
+        setVideoResult({ videoId, videoStatus: "ready" } as ContentResult);
+        setVideoScenes([{ text: "", searchTermsInput: "" }]);
+        fetchHistory();
+      } else {
+        // El video está procesando, hacer polling
+        setVideoState({ loading: true, error: null, message: "Video en proceso de generación..." });
+        setVideoResult({ videoId, videoStatus: "processing" } as ContentResult);
+        await pollVideoStatus(videoId, data.item?._id);
+      }
+    } catch (error) {
+      setVideoState({
+        loading: false,
+        error: error instanceof Error ? error.message : "No se pudo generar el video",
+        message: null,
+      });
+    }
+  };
+
+  const pollVideoStatus = async (videoId: string, itemId?: string) => {
+    const maxAttempts = 60; // 5 minutos máximo (60 * 5 segundos)
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
+      await new Promise((resolve) => setTimeout(resolve, 5000)); // Esperar 5 segundos
+      attempts++;
+
+      try {
+        const statusResponse = await fetch(`/api/content/video?videoId=${videoId}`);
+        const statusData = await statusResponse.json();
+
+        if (statusData.status === "ready") {
+          // Actualizar el item en MongoDB si tenemos el ID
+          if (itemId) {
+            await fetch(`/api/content/video`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ itemId, videoStatus: "ready" }),
+            });
+          }
+          
+          setVideoState({ loading: false, error: null, message: "¡Video generado exitosamente!" });
+          setVideoResult({ videoId, videoStatus: "ready" } as ContentResult);
+          setVideoScenes([{ text: "", searchTermsInput: "" }]);
+          fetchHistory();
+          return;
+        } else if (statusData.status === "error") {
+          setVideoState({
+            loading: false,
+            error: "Error al generar el video",
+            message: null,
+          });
+          return;
+        }
+        // Si sigue en "processing", continuar el loop
+      } catch {
+        // Ignorar errores de polling y continuar
+      }
+    }
+
+    setVideoState({
+      loading: false,
+      error: "Tiempo de espera agotado. El video puede seguir procesándose en segundo plano.",
+      message: null,
+    });
+  };
+
   const renderSentimentHistorySnippet = (item: ContentHistoryItem) => {
     const normalized = normalizeContentResult(item.result);
     if (!normalized) return null;
@@ -569,6 +777,65 @@ export default function Home() {
     );
   };
 
+  const renderVideoHistorySnippet = (item: ContentHistoryItem) => {
+    const videoId = item.result?.videoId as string | undefined;
+    const videoStatus = item.result?.videoStatus as string | undefined;
+    const prompt = item.prompt?.slice(0, 100) ?? "";
+    
+    // Si no hay videoId, mostrar no disponible
+    if (!videoId) {
+      return (
+        <div className="history-video">
+          <div className="video-unavailable">
+            <FiFilm className="video-unavailable-icon" />
+            <span>Video no disponible</span>
+          </div>
+          {prompt && <p className="history-snippet">{prompt}...</p>}
+        </div>
+      );
+    }
+
+    // Si el video está procesando, mostrar estado de procesamiento
+    if (videoStatus === "processing" || item.status === "processing") {
+      return (
+        <div className="history-video">
+          <div className="video-processing-history">
+            <FiFilm className="video-processing-icon" />
+            <span>Procesando video...</span>
+          </div>
+          {prompt && <p className="history-snippet">{prompt.slice(0, 80)}...</p>}
+        </div>
+      );
+    }
+
+    // Video listo, mostrar reproductor
+    return (
+      <div className="history-video">
+        <video
+          className="history-video-player"
+          controls
+          preload="metadata"
+          onError={(e) => {
+            const target = e.currentTarget;
+            target.style.display = "none";
+            const fallback = target.nextElementSibling as HTMLElement;
+            if (fallback) fallback.style.display = "flex";
+          }}
+        >
+          <source
+            src={`/api/content/video/download?videoId=${videoId}`}
+            type="video/mp4"
+          />
+        </video>
+        <div className="video-unavailable" style={{ display: "none" }}>
+          <FiFilm className="video-unavailable-icon" />
+          <span>Video no disponible</span>
+        </div>
+        {prompt && <p className="history-snippet">{prompt.slice(0, 80)}...</p>}
+      </div>
+    );
+  };
+
   const renderHistory = () => {
     if (historyState.loading) {
       return <p className="muted">Cargando historial...</p>;
@@ -586,32 +853,68 @@ export default function Home() {
     }
 
     if (history.length === 0) {
-      return <p className="muted">No hay ejecuciones registradas todavía.</p>;
+      return <p className="muted">No hay ejecuciones registradas todavia.</p>;
     }
 
-    return history.map((item) => {
-      const snippets = extractText(item.result)?.slice(0, 200) ?? "";
-      const date = new Date(item.createdAt).toLocaleString();
-      return (
-        <article key={item._id} className="history-item">
-          <div className="history-icon">{icons[item.type] ?? <FiPenTool />}</div>
-          <div className="history-content">
-            <div className="history-row">
-              <span className="badge">{typeCopy[item.type] ?? item.type}</span>
-              <span className={`status ${item.status}`}>{item.status}</span>
-            </div>
-            {item.type === "sentiment"
-              ? renderSentimentHistorySnippet(item)
-              : item.type === "image"
-                ? renderImageHistorySnippet(item)
-                : (
-                  <p className="history-snippet">{snippets}</p>
-                )}
-            <small className="muted">{date}</small>
+    const totalPages = Math.ceil(history.length / ITEMS_PER_PAGE);
+    const startIndex = (historyPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const paginatedItems = history.slice(startIndex, endIndex);
+
+    return (
+      <>
+        {paginatedItems.map((item) => {
+          const snippets = extractText(item.result)?.slice(0, 200) ?? "";
+          const date = new Date(item.createdAt).toLocaleString();
+          return (
+            <article key={item._id} className="history-item">
+              <div className="history-icon">{icons[item.type] ?? <FiPenTool />}</div>
+              <div className="history-content">
+                <div className="history-row">
+                  <span className="badge">{typeCopy[item.type] ?? item.type}</span>
+                  <span className={`status ${item.status}`}>{item.status}</span>
+                </div>
+                {item.type === "sentiment"
+                  ? renderSentimentHistorySnippet(item)
+                  : item.type === "image"
+                    ? renderImageHistorySnippet(item)
+                    : item.type === "video"
+                      ? renderVideoHistorySnippet(item)
+                      : (
+                        <p className="history-snippet">{snippets}</p>
+                      )}
+                <small className="muted">{date}</small>
+              </div>
+            </article>
+          );
+        })}
+        {totalPages > 1 && (
+          <div className="pagination">
+            <button
+              type="button"
+              className="pagination-btn"
+              onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+              disabled={historyPage === 1}
+            >
+              <FiChevronLeft />
+              Anterior
+            </button>
+            <span className="pagination-info">
+              {historyPage} de {totalPages}
+            </span>
+            <button
+              type="button"
+              className="pagination-btn"
+              onClick={() => setHistoryPage((p) => Math.min(totalPages, p + 1))}
+              disabled={historyPage === totalPages}
+            >
+              Siguiente
+              <FiChevronRight />
+            </button>
           </div>
-        </article>
-      );
-    });
+        )}
+      </>
+    );
   };
 
   const renderActivePanel = () => {
@@ -620,7 +923,7 @@ export default function Home() {
         <section className="panel-card card">
           <div className="card-header">
             <div className="icon-circle success">{tabMeta.script.icon}</div>
-            <div>
+            <div className="card-header-content">
               <h2>{tabMeta.script.title}</h2>
               <p>{tabMeta.script.description}</p>
             </div>
@@ -673,7 +976,7 @@ export default function Home() {
         <section className="panel-card card">
           <div className="card-header">
             <div className="icon-circle accent">{tabMeta.image.icon}</div>
-            <div>
+            <div className="card-header-content">
               <h2>{tabMeta.image.title}</h2>
               <p>{tabMeta.image.description}</p>
             </div>
@@ -726,19 +1029,176 @@ export default function Home() {
 
     if (activeTab === "video") {
       return (
-        <section className="panel-card card placeholder">
+        <section className="panel-card card">
           <div className="card-header">
-            <div className="icon-circle muted">{tabMeta.video.icon}</div>
-            <div>
+            <div className="icon-circle accent">{tabMeta.video.icon}</div>
+            <div className="card-header-content">
               <h2>{tabMeta.video.title}</h2>
               <p>{tabMeta.video.description}</p>
             </div>
           </div>
-          <p className="muted">
-            Estamos preparando plantillas de prompts dinámicos, storyboards y
-            plantillas de rodaje automatizadas. Comparte tus casos prioritarios para
-            ayudarnos a definir la primera versión.
-          </p>
+          <form className="form" onSubmit={submitVideo}>
+            <div className="scenes-container">
+              <div className="scenes-header">
+                <span className="scenes-label">Escenas del video</span>
+                <button
+                  type="button"
+                  className="ghost-button small"
+                  onClick={addScene}
+                >
+                  Agregar escena
+                </button>
+              </div>
+              {videoScenes.map((scene, index) => (
+                <div key={index} className="scene-card">
+                  <div className="scene-header">
+                    <span className="scene-number">Escena {index + 1}</span>
+                    {videoScenes.length > 1 && (
+                      <button
+                        type="button"
+                        className="remove-scene"
+                        onClick={() => removeScene(index)}
+                      >
+                        Eliminar
+                      </button>
+                    )}
+                  </div>
+                  <label>
+                    Narracion (en ingles)
+                    <textarea
+                      rows={2}
+                      value={scene.text}
+                      onChange={(e) => updateSceneText(index, e.target.value)}
+                      placeholder="Ej. Did you know that 90% of businesses fail in their first year?"
+                    />
+                  </label>
+                  <label>
+                    Terminos de busqueda (separados por coma)
+                    <input
+                      type="text"
+                      value={scene.searchTermsInput}
+                      onChange={(e) => updateSceneSearchTerms(index, e.target.value)}
+                      placeholder="Ej. business, startup, office"
+                    />
+                  </label>
+                </div>
+              ))}
+            </div>
+            <div className="video-config">
+              <span className="config-label">Configuracion del video</span>
+              <div className="config-grid">
+                <label>
+                  Musica
+                  <select
+                    value={videoConfig.music}
+                    onChange={(e) =>
+                      setVideoConfig((prev) => ({ ...prev, music: e.target.value }))
+                    }
+                  >
+                    {musicOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Voz
+                  <select
+                    value={videoConfig.voice}
+                    onChange={(e) =>
+                      setVideoConfig((prev) => ({ ...prev, voice: e.target.value }))
+                    }
+                  >
+                    {voiceOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Posicion de subtitulos
+                  <select
+                    value={videoConfig.captionPosition}
+                    onChange={(e) =>
+                      setVideoConfig((prev) => ({
+                        ...prev,
+                        captionPosition: e.target.value as "top" | "center" | "bottom",
+                      }))
+                    }
+                  >
+                    {captionPositionOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Orientacion
+                  <select
+                    value={videoConfig.orientation}
+                    onChange={(e) =>
+                      setVideoConfig((prev) => ({
+                        ...prev,
+                        orientation: e.target.value as "portrait" | "landscape",
+                      }))
+                    }
+                  >
+                    <option value="portrait">Vertical (9:16)</option>
+                    <option value="landscape">Horizontal (16:9)</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            {videoState.error && (
+              <p className="error-text">{videoState.error}</p>
+            )}
+            {videoState.message && !videoState.error && (
+              <p className="success-text">{videoState.message}</p>
+            )}
+            <button
+              type="submit"
+              className="primary"
+              disabled={videoState.loading}
+            >
+              {videoState.loading ? "Generando video..." : "Crear video"}
+            </button>
+            {videoState.loading && !videoState.message && (
+              <p className="muted">
+                La generación puede tomar varios minutos dependiendo de la cantidad de escenas.
+              </p>
+            )}
+          </form>
+          {videoResult?.videoId && (
+            <div className="result-block">
+              {videoResult.videoStatus === "processing" ? (
+                <div className="video-processing">
+                  <FiFilm className="video-processing-icon" />
+                  <p>El video se está procesando...</p>
+                  <p className="muted">{videoState.message || "Esto puede tomar varios minutos. El video aparecerá automáticamente cuando esté listo."}</p>
+                </div>
+              ) : (
+                <>
+                  {videoState.message && (
+                    <p className="success-text" style={{ marginBottom: '16px' }}>{videoState.message}</p>
+                  )}
+                  <video
+                    className="video-preview"
+                    controls
+                    preload="metadata"
+                  >
+                    <source
+                      src={`/api/content/video/download?videoId=${videoResult.videoId}`}
+                      type="video/mp4"
+                    />
+                    Tu navegador no soporta la reproducción de video.
+                  </video>
+                </>
+              )}
+            </div>
+          )}
         </section>
       );
     }
@@ -747,7 +1207,7 @@ export default function Home() {
       <section className="panel-card card">
         <div className="card-header">
           <div className="icon-circle warning">{tabMeta.sentiment.icon}</div>
-          <div>
+          <div className="card-header-content">
             <h2>{tabMeta.sentiment.title}</h2>
             <p>{tabMeta.sentiment.description}</p>
           </div>

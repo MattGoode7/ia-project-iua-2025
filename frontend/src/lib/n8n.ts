@@ -3,12 +3,26 @@ import { Buffer } from "node:buffer";
 type N8NPayload = {
   type: string;
   prompt: string;
+  // Campos opcionales para video
+  scenes?: Array<{
+    text: string;
+    searchTerms: string[];
+  }>;
+  config?: {
+    paddingBack?: number;
+    music?: string;
+    voice?: string;
+    captionPosition?: "top" | "center" | "bottom";
+    captionBackgroundColor?: string;
+    orientation?: "portrait" | "landscape";
+  };
 };
 
 type StatusResponse = {
-  status: "pending" | "completed" | "error";
+  status: "pending" | "completed" | "error" | "ready" | "processing";
   result?: unknown;
   taskId?: string;
+  videoId?: string;
   message?: string;
   error?: string;
 };
@@ -30,6 +44,26 @@ function isStatusEnvelope(payload: unknown): payload is StatusResponse {
     "status" in payload &&
     typeof (payload as { status?: unknown }).status === "string"
   );
+}
+
+// Extrae el payload real de la respuesta de n8n (maneja arrays y objetos con json)
+function extractN8NPayload(data: unknown): unknown {
+  // Si es un array, tomar el primer elemento
+  if (Array.isArray(data) && data.length > 0) {
+    const first = data[0];
+    // Si el primer elemento tiene una propiedad "json", usar eso
+    if (first && typeof first === "object" && "json" in first) {
+      return (first as { json: unknown }).json;
+    }
+    return first;
+  }
+  
+  // Si es un objeto con propiedad "json", usar eso
+  if (data && typeof data === "object" && "json" in data) {
+    return (data as { json: unknown }).json;
+  }
+  
+  return data;
 }
 
 const BASE64_REGEX = /^[A-Za-z0-9+/=\s]+$/;
@@ -120,7 +154,12 @@ export async function triggerN8N(payload: N8NPayload) {
     throw new Error(`Webhook error (${initial.status})`);
   }
 
-  const initialData: unknown = await parseResponsePayload(initial);
+  const rawData: unknown = await parseResponsePayload(initial);
+  // Extraer el payload real (maneja arrays y objetos con propiedad json de n8n)
+  const initialData: unknown = extractN8NPayload(rawData);
+  
+  console.log("[n8n] Raw response:", rawData);
+  console.log("[n8n] Extracted payload:", initialData);
 
   if (!isStatusEnvelope(initialData)) {
     return {
@@ -136,6 +175,17 @@ export async function triggerN8N(payload: N8NPayload) {
         initialData.result ?? initialData
       ),
       taskId: initialData.taskId,
+    };
+  }
+
+  // Manejar respuesta de video: { status: "ready" | "processing", videoId: "xxx" }
+  if (initialData.status === "ready" || initialData.status === "processing") {
+    return {
+      status: "completed" as const,
+      result: {
+        videoId: initialData.videoId,
+        videoStatus: initialData.status,
+      },
     };
   }
 
