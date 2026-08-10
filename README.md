@@ -392,4 +392,6 @@ Ejecuta estos comandos desde `frontend/`:
 
 Los volúmenes de Docker conservan MongoDB, Qdrant y los videos al reiniciar los contenedores. Los archivos `.env*` están excluidos de Git; mantén las credenciales fuera del repositorio y utiliza un gestor de secretos en producción.
 
-El repositorio no incluye una licencia. Salvo que se agregue una, su uso y redistribución permanecen sujetos a los derechos de sus autores.
+## Licencia
+
+Este proyecto se distribuye bajo la [Licencia MIT](LICENSE).
